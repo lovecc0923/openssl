@@ -1,0 +1,35 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  opensslVersion: 'openssl-3.0.2'
+  buildDir: '$(Build.SourcesDirectory)/build'
+  installDir: '$(Build.ArtifactStagingDirectory)/openssl'
+
+steps:
+# 安装 Perl
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+
+# 安装 NASM
+- script: choco install nasm
+  displayName: 'Install NASM'
+
+# 配置和编译 OpenSSL 静态库
+- script: |
+    cd $(opensslVersion)
+    perl Configure VC-WIN64A no-shared --prefix=$(installDir) --openssldir=$(installDir)/ssl
+    nmake
+    nmake install
+  displayName: 'Build and Install OpenSSL'
+
+# 发布 OpenSSL 静态库作为工件
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(installDir)'
+    artifactName: 'openssl'
+    publishLocation: 'Container'
